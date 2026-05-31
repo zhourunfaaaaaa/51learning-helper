@@ -297,10 +297,7 @@
       displayMode: $("#cl51-display")?.value || getConfig().displayMode,
       revealMode: $("#cl51-reveal")?.value || getConfig().revealMode,
       speedMode: $("#cl51-speed")?.value || getConfig().speedMode,
-      minMinutes: Number($("#cl51-min")?.value || getConfig().minMinutes),
-      maxMinutes: Number($("#cl51-max")?.value || getConfig().maxMinutes),
     };
-    if (config.maxMinutes < config.minMinutes) config.maxMinutes = config.minMinutes;
     saveConfig(config);
     return config;
   }
@@ -317,10 +314,25 @@
     return clicked;
   }
 
-  function randomMinutes(config) {
-    const min = Math.max(1, Number(config.minMinutes) || DEFAULT_CONFIG.minMinutes);
-    const max = Math.max(min, Number(config.maxMinutes) || DEFAULT_CONFIG.maxMinutes);
-    return min + Math.random() * (max - min);
+  function countArticleWords() {
+    const text = articleText();
+    if (!text) return 0;
+    const words = text.split(/\s+/).filter((w) => /[a-zA-Z]/.test(w));
+    return words.length;
+  }
+
+  function parseSpeedWpm(speedMode) {
+    const match = (speedMode || "").match(/每分钟(\d+)个/);
+    return match ? Number(match[1]) : 100;
+  }
+
+  function estimatedMinutes(config) {
+    const wpm = parseSpeedWpm(config.speedMode || DEFAULT_CONFIG.speedMode);
+    const words = countArticleWords();
+    if (!words) return 5; // 取不到词数时默认5分钟
+    const minutes = words / wpm;
+    const jitter = 0.85 + Math.random() * 0.3; // ±15% 自然抖动
+    return Math.max(2, Math.min(30, minutes * jitter));
   }
 
   function startReading() {
@@ -337,7 +349,7 @@
       return;
     }
     robustClick(start);
-    const targetMinutes = randomMinutes(config);
+    const targetMinutes = estimatedMinutes(config);
     saveJson(timerKey(), {
       startedAt: Date.now(),
       targetMs: Math.round(targetMinutes * 60 * 1000),
@@ -346,7 +358,9 @@
     });
     startTicker();
     setTimeout(updateTimerUi, 3200);
-    setStatus(`已点击开始阅读并开始计时，目标约 ${targetMinutes.toFixed(1)} 分钟。`);
+    const wordCount = countArticleWords();
+    const wpm = parseSpeedWpm(config.speedMode || DEFAULT_CONFIG.speedMode);
+    setStatus(`已开始阅读（约 ${wordCount} 词，${wpm} 词/分钟），目标 ${targetMinutes.toFixed(1)} 分钟。`);
   }
 
   function findStartButton() {
@@ -399,14 +413,14 @@
     if (!isArticlePage() || readTimer() || localStorage.getItem(timerPausedKey()) === "1" || !siteReadingInProgress()) return false;
     const config = getConfig();
     const siteElapsed = readSiteElapsedMs();
-    const targetMinutes = randomMinutes(config);
+    const targetMinutes = estimatedMinutes(config);
     saveJson(timerKey(), {
       startedAt: Date.now() - siteElapsed,
       targetMs: Math.round(Math.max(targetMinutes * 60 * 1000, siteElapsed + 1000)),
       notified: false,
       adoptedFromSite: true,
     });
-    setStatus("已同步网页上的阅读计时。");
+    setStatus(`已同步网页阅读计时，目标约 ${targetMinutes.toFixed(1)} 分钟。`);
     return true;
   }
 
@@ -1536,7 +1550,6 @@
           <label>b <input id="cl51-b" value="${htmlEscape(params.b || config.b)}"></label>
           <label>u <input id="cl51-u" value="${htmlEscape(params.u || config.u)}"></label>
           <label>每页 <input id="cl51-limit" type="number" min="1" max="50" value="${Number(params.limit || config.limit)}"></label>
-          <label>分钟 <span class="pair"><input id="cl51-min" type="number" min="1" max="60" value="${Number(config.minMinutes)}"><input id="cl51-max" type="number" min="1" max="60" value="${Number(config.maxMinutes)}"></span></label>
         </div>
         <div class="actions compact">
           <button id="cl51-collect" type="button" class="primary">收集单元</button>
@@ -1605,7 +1618,7 @@
     $("#cl51-fill").addEventListener("click", fillPasted);
     $("#cl51-save-answers").addEventListener("click", savePastedAnswers);
     $("#cl51-fill-saved").addEventListener("click", fillSavedAnswers);
-    for (const id of ["cl51-b", "cl51-u", "cl51-limit", "cl51-min", "cl51-max", "cl51-display", "cl51-reveal", "cl51-speed"]) {
+    for (const id of ["cl51-b", "cl51-u", "cl51-limit", "cl51-display", "cl51-reveal", "cl51-speed"]) {
       const el = $(`#${id}`);
       if (el) el.addEventListener("change", () => {
         configFromUi();
