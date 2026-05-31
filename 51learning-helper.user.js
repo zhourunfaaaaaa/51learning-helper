@@ -504,11 +504,11 @@
     if (ready && !timer.notified) {
       timer.notified = true;
       saveJson(timerKey(), timer);
-      setStatus("计时到达。确认后可自动点击“完成阅读”，题目出现后仍需你检查答案。");
+      setStatus("计时到达，正在自动点击“完成阅读”...");
       setTimeout(() => {
-        if (!confirm("计时到达。是否现在点击网站的“完成阅读”按钮？")) return;
+        // 自动完成，不再弹窗确认
         if (clickSiteFinishButton()) {
-          setStatus("已点击完成阅读。等待题目出现后，可复制模板或填入你确认过的答案。");
+          setStatus("已自动点击完成阅读。题目出现后可复制模板或填入答案。");
         } else {
           setStatus("没有找到完成阅读按钮。可能题目已经出现，或页面按钮文字不同。");
         }
