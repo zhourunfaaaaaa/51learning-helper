@@ -445,11 +445,13 @@
     const pageStatusNow = detectCurrentPageSiteStatus();
     const justClickedStart = timer?.startedAt && timer.pendingStartCheck && Date.now() - timer.startedAt < 6000;
     if (pageStatusNow === "未开始" && !justClickedStart) {
-      if (state.tickId) {
-        clearInterval(state.tickId);
-        state.tickId = null;
+      if (!timer?.startedAt) {
+        timerEl.textContent = "计时：未开始";
+        if (finishButton) finishButton.disabled = true;
+        return;
       }
-      if (timer?.startedAt) localStorage.removeItem(timerKey());
+      // 有计时但页面回到未开始状态（可能切换了文章），清除旧计时
+      localStorage.removeItem(timerKey());
       timerEl.textContent = "计时：未开始";
       if (finishButton) finishButton.disabled = true;
       renderQueueSummary();
