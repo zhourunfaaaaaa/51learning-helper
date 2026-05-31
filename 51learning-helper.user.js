@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         51Learning Reading Workflow Helper
 // @namespace    local.codex.51learning.workflow
-// @version      1.0.0
+// @version      1.1.0
 // @description  51Learning 学习流程助手：收集文章队列、定时阅读、复制学习包、保存答案、一键填入已确认的答案（不自动提交）
 // @match        http://reading.51learning.com.cn:8080/Reading/*
 // @license      MIT
